@@ -26,10 +26,18 @@
 #include <string>
 
 
-const GLint WINDOW_WIDTH = 1280;
-const GLint WINDOW_HEIGHT = 720;
+const GLint WINDOW_WIDTH = 1680;
+const GLint WINDOW_HEIGHT = 945;
 // const GLint WINDOW_WIDTH = 800;
 // const GLint WINDOW_HEIGHT = 600;
+
+
+struct InputData {
+  bool w_key_press;
+  bool s_key_press;
+  bool a_key_press;
+  bool d_key_press;
+};
 
 
 void read_shader_source(std::string file_path, std::string &output_source);
@@ -42,6 +50,7 @@ int main() {
    // @@ program variables
    float texture_scale = 1.0f;
    float fov_degrees = 65.0f;
+   float move_speed = 1.0f;
    // @!
 
 
@@ -96,7 +105,7 @@ int main() {
 
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB,
@@ -118,8 +127,8 @@ int main() {
 
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGBA,
 		   GL_UNSIGNED_BYTE, texture_data);
@@ -289,23 +298,78 @@ int main() {
    GLint shader_MVP_id = glGetUniformLocation(shader_program, "MVP");
    glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
    // @!
+
+
+   // @@ loop variables
+   float delta_time = 0.0f;
+   float last_frame_time = 0.0f;
+   glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
+   glm::vec3 camera_face_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+   // @!
    
    
    while(!glfwWindowShouldClose(window))
    {
-      glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      // @@ delta time calculations, must be done at BEGINNING OF FRAME!
+      float current_frame_time = glfwGetTime();
+      delta_time = current_frame_time - last_frame_time;
+      last_frame_time = current_frame_time;
+      // @!
+
       
       // @@ input
+      InputData input_data;
+      input_data.w_key_press = false;
+      input_data.s_key_press = false;
+      input_data.a_key_press = false;
+      input_data.d_key_press = false;
+      
+      if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+	input_data.w_key_press = true;
+      }
+      if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+	input_data.s_key_press = true;
+      }
+      if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+	input_data.a_key_press = true;
+      }
+      if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+	input_data.d_key_press = true;
+      }
       // @!
 
 
-      // @@
-      const float radius = 2.0f;
-      float camX = sin(glfwGetTime()) * radius;
-      float camZ = cos(glfwGetTime()) * radius;
+      // @@ simulation
+      glm::mat3 y_rotation_matrix = glm::rotate(glm::mat4(1.0f),
+						   glm::radians(0.2f),
+						   glm::vec3(0.0f, 1.0f, 0.0f));
+      camera_face_dir = y_rotation_matrix * camera_face_dir;
+      
+      
+      glm::vec3 move_dir = glm::vec3(0.0f, 0.0f, 0.0f);
+      if(input_data.w_key_press == true) {
+	move_dir += glm::vec3(0.0f, 0.0f, -1.0f);
+      }
+      if(input_data.s_key_press == true) {
+	move_dir += glm::vec3(0.0f, 0.0f, 1.0f);
+      }
+
+      if(input_data.a_key_press == true) {
+	move_dir += glm::vec3(-1.0f, 0.0f, 0.0f);
+      }
+      if(input_data.d_key_press == true) {
+	move_dir += glm::vec3(1.0f, 0.0f, 0.0f);
+      }
+
+      if(glm::length(move_dir) > 0.0f) {
+	move_dir = glm::normalize(move_dir);
+	camera_pos += move_dir * move_speed * delta_time;
+      }
+
+      
       glm::mat4 view;
-      view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0),
+      view = glm::lookAt(camera_pos,
+			 camera_pos + camera_face_dir,
 			 glm::vec3(0.0, 1.0, 0.0));
 
       
@@ -315,6 +379,9 @@ int main() {
 
       
       // @@ rendering
+      glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, texture_1_id);
       glActiveTexture(GL_TEXTURE1);
