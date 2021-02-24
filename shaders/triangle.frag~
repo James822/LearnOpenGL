@@ -10,7 +10,5 @@ uniform sampler2D face_texture;
 
 void main()
 {
-   vec2 new_text_coord = vec2(-text_coord.x, text_coord.y);
-   frag_color = mix(texture(container_texture, text_coord),
-		    texture(face_texture, new_text_coord), 0.2f);
+   frag_color = mix(texture(container_texture, text_coord), texture(face_texture, text_coord), 0.2f);
 } 

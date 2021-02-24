@@ -26,10 +26,10 @@
 #include <string>
 
 
-// const GLint WINDOW_WIDTH = 1280;
-// const GLint WINDOW_HEIGHT = 720;
-const GLint WINDOW_WIDTH = 800;
-const GLint WINDOW_HEIGHT = 600;
+const GLint WINDOW_WIDTH = 1280;
+const GLint WINDOW_HEIGHT = 720;
+// const GLint WINDOW_WIDTH = 800;
+// const GLint WINDOW_HEIGHT = 600;
 
 
 void read_shader_source(std::string file_path, std::string &output_source);
@@ -41,6 +41,7 @@ int main() {
    
    // @@ program variables
    float texture_scale = 1.0f;
+   float fov_degrees = 65.0f;
    // @!
 
 
@@ -67,6 +68,7 @@ int main() {
    // @@ GL setup
    {
       glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+      glEnable(GL_DEPTH_TEST);
    }
    // @!
 
@@ -201,12 +203,55 @@ int main() {
    
       GLuint triangle_VBO;
       {
-	 GLfloat vertices[] = {
-	    // positions         // colors         // tex coords
-	    0.5f,  -0.5f, 0.0f,  1.0f, 1.0f, 0.0f, texture_scale * 0.0f, texture_scale * 0.0f,
-	    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 1.0f, texture_scale * 1.0f, texture_scale * 0.0f,
-	    0.0f,   0.5f, 0.0f,  1.0f, 0.0f, 1.0f, texture_scale * 0.5f, texture_scale * 1.0f,
+	 float vertices[] = {
+	    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	    0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	    0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	    0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	    0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	    0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	    0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	    0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 	 };
+	 // GLfloat vertices[] = {
+	 //    // positions         // colors         // tex coords
+	 //    0.5f,  -0.5f, 0.0f,  1.0f, 1.0f, 0.0f, texture_scale * 0.0f, texture_scale * 0.0f,
+	 //    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 1.0f, texture_scale * 1.0f, texture_scale * 0.0f,
+	 //    0.0f,   0.5f, 0.0f,  1.0f, 0.0f, 1.0f, texture_scale * 0.5f, texture_scale * 1.0f,
+	 // };
 
 	 glGenBuffers(1, &triangle_VBO);
 	 glBindBuffer(GL_ARRAY_BUFFER, triangle_VBO);
@@ -214,45 +259,55 @@ int main() {
       }
 
       // positions
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
       glEnableVertexAttribArray(0);
 
-      // colors
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
+      // tex coords
+      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
 			    (void *)(3 * sizeof(GLfloat)));
       glEnableVertexAttribArray(1);
 
-      // tex coords
-      glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
-			    (void *)(6 * sizeof(GLfloat)));
-      glEnableVertexAttribArray(2);
+      // // tex coords
+      // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
+      // 			    (void *)(6 * sizeof(GLfloat)));
+      // glEnableVertexAttribArray(2);
    }
    // @!
 
 
    // @@ idk
-   glm::mat4 trans;
-   GLint transform_location;
-   {
-      transform_location = glGetUniformLocation(shader_program, "transform");
-   }
+   glm::mat4 model = glm::mat4(1.0f);
+   model = glm::rotate(model, glm::radians(-40.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+   glm::mat4 view = glm::mat4(1.0f);
+   view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+   glm::mat4 projection;
+   projection = glm::perspective(glm::radians(fov_degrees),
+				 (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+
+   glm::mat4 MVP = projection * view * model;
+
+   GLint shader_MVP_id = glGetUniformLocation(shader_program, "MVP");
+   glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
    // @!
    
    
    while(!glfwWindowShouldClose(window))
    {
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT);
-      // input
-
-      // @@ simulation
-      trans = glm::mat4(1.0f);
-      trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-      trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0, 0.0, 1.0));
-      //trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-      glUniformMatrix4fv(transform_location, 1, GL_FALSE, glm::value_ptr(trans));
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      
+      // @@ input
       // @!
 
+
+      // @@
+      model = glm::rotate(model, (float)glfwGetTime() * glm::radians(0.001f),
+			  glm::vec3(0.5f, 1.0f, 0.0f));
+      MVP = projection * view * model;
+      glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
+      // @!
+
+      
       // @@ rendering
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, texture_1_id);
@@ -261,8 +316,9 @@ int main() {
       
       glUseProgram(shader_program);
       glBindVertexArray(triangle_VAO);
-      glDrawArrays(GL_TRIANGLES, 0, 3);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
       // @!
+      
 
       // check and call events and swap the buffers
       glfwPollEvents();
