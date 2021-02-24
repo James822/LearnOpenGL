@@ -301,8 +301,14 @@ int main() {
 
 
       // @@
-      model = glm::rotate(model, (float)glfwGetTime() * glm::radians(0.001f),
-			  glm::vec3(0.5f, 1.0f, 0.0f));
+      const float radius = 2.0f;
+      float camX = sin(glfwGetTime()) * radius;
+      float camZ = cos(glfwGetTime()) * radius;
+      glm::mat4 view;
+      view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0),
+			 glm::vec3(0.0, 1.0, 0.0));
+
+      
       MVP = projection * view * model;
       glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
       // @!
