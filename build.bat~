@@ -18,9 +18,6 @@ set LIBS=opengl32.lib msvcrt.lib vcruntime.lib libcmt.lib user32.lib gdi32.lib s
 :::
 
 
-
-:: this is the only absolute path we use, change this if the build has path errors, and the rest
-:: should fix itself
 pushd "%ROOT_DIR%\builds\windows_10-x64"
 
 cl %OPTS% %LIBS% ../../main.cpp ../../glad.c
