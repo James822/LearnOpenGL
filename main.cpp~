@@ -26,17 +26,22 @@
 #include <string>
 
 
-const GLint WINDOW_WIDTH = 1680;
-const GLint WINDOW_HEIGHT = 945;
+const GLint WINDOW_WIDTH = 1280;
+const GLint WINDOW_HEIGHT = 720;
 // const GLint WINDOW_WIDTH = 800;
 // const GLint WINDOW_HEIGHT = 600;
 
 
 struct InputData {
-  bool w_key_press;
-  bool s_key_press;
-  bool a_key_press;
-  bool d_key_press;
+   bool w_key_press;
+   bool s_key_press;
+   bool a_key_press;
+   bool d_key_press;
+
+   float last_mouse_xpos;
+   float last_mouse_ypos;
+   float mouse_xpos;
+   float mouse_ypos;
 };
 
 
@@ -303,8 +308,22 @@ int main() {
    // @@ loop variables
    float delta_time = 0.0f;
    float last_frame_time = 0.0f;
+
+   float pitch = 0.0f;
+   float yaw = 0.0f;
+   
    glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
    glm::vec3 camera_face_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+   
+   InputData input_data;
+   {
+      double d_mouse_xpos;
+      double d_mouse_ypos;
+      glfwGetCursorPos(window, &d_mouse_xpos, &d_mouse_ypos);
+      
+      input_data.last_mouse_xpos = d_mouse_xpos;
+      input_data.last_mouse_ypos = d_mouse_ypos;
+   }
    // @!
    
    
@@ -318,32 +337,42 @@ int main() {
 
       
       // @@ input
-      InputData input_data;
-      input_data.w_key_press = false;
-      input_data.s_key_press = false;
-      input_data.a_key_press = false;
-      input_data.d_key_press = false;
+      {
+	 input_data.w_key_press = false;
+	 input_data.s_key_press = false;
+	 input_data.a_key_press = false;
+	 input_data.d_key_press = false;
       
-      if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-	input_data.w_key_press = true;
-      }
-      if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-	input_data.s_key_press = true;
-      }
-      if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-	input_data.a_key_press = true;
-      }
-      if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-	input_data.d_key_press = true;
+	 if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+	    input_data.w_key_press = true;
+	 }
+	 if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+	    input_data.s_key_press = true;
+	 }
+	 if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+	    input_data.a_key_press = true;
+	 }
+	 if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+	    input_data.d_key_press = true;
+	 }
+
+	 double d_mouse_xpos;
+	 double d_mouse_ypos;
+	 glfwGetCursorPos(window, &d_mouse_xpos, &d_mouse_ypos);
+	 input_data.mouse_xpos = d_mouse_xpos;
+	 input_data.mouse_ypos = d_mouse_ypos;
       }
       // @!
 
 
       // @@ simulation
-      glm::mat3 y_rotation_matrix = glm::rotate(glm::mat4(1.0f),
-						   glm::radians(0.2f),
-						   glm::vec3(0.0f, 1.0f, 0.0f));
-      camera_face_dir = y_rotation_matrix * camera_face_dir;
+      pitch += 0.0015 * (input_data.mouse_ypos - input_data.last_mouse_ypos);
+      if(pitch > 89.0f) { pitch = 89; }
+      else if(pitch < -89.0f) { pitch = -89; }
+      
+      input_data.last_mouse_ypos = input_data.mouse_ypos;
+      
+      camera_face_dir = glm::vec3(camera_face_dir.x, -sin(pitch), -cos(pitch));
       
       
       glm::vec3 move_dir = glm::vec3(0.0f, 0.0f, 0.0f);

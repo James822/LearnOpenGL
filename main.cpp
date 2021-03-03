@@ -69,6 +69,13 @@ int main() {
       window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGL", NULL, NULL);
       glfwMakeContextCurrent(window);
    }
+
+   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+   if(glfwRawMouseMotionSupported()) {
+      glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+   } else {
+      printf("@DEV_WARNING: GLFW_RAW_MOUSE_MOTION not supported.\n");
+   }
    // @!
 
    
@@ -366,33 +373,37 @@ int main() {
 
 
       // @@ simulation
-      pitch += 0.0015 * (input_data.mouse_ypos - input_data.last_mouse_ypos);
-      if(pitch > 89.0f) { pitch = 89; }
-      else if(pitch < -89.0f) { pitch = -89; }
-      
+      yaw += 0.01 * (input_data.mouse_xpos - input_data.last_mouse_xpos);
+      pitch += 0.01 * (input_data.mouse_ypos - input_data.last_mouse_ypos);
+      if(pitch > 1.5533) { pitch = 1.5533; }
+      else if(pitch < -1.5533) { pitch = -1.5533; }
+
+      input_data.last_mouse_xpos = input_data.mouse_xpos;
       input_data.last_mouse_ypos = input_data.mouse_ypos;
       
-      camera_face_dir = glm::vec3(camera_face_dir.x, -sin(pitch), -cos(pitch));
+      camera_face_dir = glm::vec3(sin(yaw) * cos(pitch), -sin(pitch), -cos(yaw) * cos(pitch));
       
       
       glm::vec3 move_dir = glm::vec3(0.0f, 0.0f, 0.0f);
+      glm::vec3 camera_right_dir =
+	 glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), camera_face_dir));
       if(input_data.w_key_press == true) {
-	move_dir += glm::vec3(0.0f, 0.0f, -1.0f);
+	 move_dir += glm::vec3(camera_face_dir.x, 0.0f, camera_face_dir.z);
       }
       if(input_data.s_key_press == true) {
-	move_dir += glm::vec3(0.0f, 0.0f, 1.0f);
+	 move_dir += glm::vec3(-camera_face_dir.x, 0.0f, -camera_face_dir.z);
       }
 
       if(input_data.a_key_press == true) {
-	move_dir += glm::vec3(-1.0f, 0.0f, 0.0f);
+	 move_dir += glm::vec3(camera_right_dir.x, 0.0f, camera_right_dir.z);
       }
       if(input_data.d_key_press == true) {
-	move_dir += glm::vec3(1.0f, 0.0f, 0.0f);
+	 move_dir += glm::vec3(-camera_right_dir.x, 0.0f, -camera_right_dir.z);
       }
 
       if(glm::length(move_dir) > 0.0f) {
-	move_dir = glm::normalize(move_dir);
-	camera_pos += move_dir * move_speed * delta_time;
+	 move_dir = glm::normalize(move_dir);
+	 camera_pos += move_dir * move_speed * delta_time;
       }
 
       
