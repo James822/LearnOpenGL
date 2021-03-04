@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "X:\LEARNOPENGL\LearnOpenGL\includes\GLAD\glad\glad.h"
+#include "includes\GLAD\glad\glad.h"
 
 static void* get_proc(const char *namez);
 
