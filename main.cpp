@@ -26,8 +26,8 @@
 #include <string>
 
 
-const GLint WINDOW_WIDTH = 1280;
-const GLint WINDOW_HEIGHT = 720;
+GLint WINDOW_WIDTH = 1280;
+GLint WINDOW_HEIGHT = 720;
 // const GLint WINDOW_WIDTH = 800;
 // const GLint WINDOW_HEIGHT = 600;
 
@@ -44,6 +44,14 @@ struct InputData {
    float mouse_ypos;
 };
 
+struct ConfigData {
+   glm::vec3 ambient_light_color;
+   float mouse_sensitivity;
+   float texture_scale;
+   float fov_degrees;
+   float move_speed;
+};
+
 
 void read_shader_source(std::string file_path, std::string &output_source);
 
@@ -53,9 +61,12 @@ int main() {
 
    
    // @@ program variables
-   float texture_scale = 1.0f;
-   float fov_degrees = 65.0f;
-   float move_speed = 1.0f;
+   ConfigData config_data;
+   config_data.ambient_light_color = glm::vec3(0.1f, 0.1f, 0.1f);
+   config_data.mouse_sensitivity = 0.01f;
+   config_data.texture_scale = 1.0f;
+   config_data.fov_degrees = 70.0f;
+   config_data.move_speed = 0.6f;
    // @!
 
 
@@ -66,7 +77,11 @@ int main() {
       glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
       glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
       glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-      window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGL", NULL, NULL);
+      GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
+      const GLFWvidmode* video_mode = glfwGetVideoMode(primary_monitor);
+      WINDOW_WIDTH = video_mode->width;
+      WINDOW_HEIGHT = video_mode->height;
+      window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "LearnOpenGL", primary_monitor, NULL);
       glfwMakeContextCurrent(window);
    }
 
@@ -302,7 +317,7 @@ int main() {
    glm::mat4 view = glm::mat4(1.0f);
    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
    glm::mat4 projection;
-   projection = glm::perspective(glm::radians(fov_degrees),
+   projection = glm::perspective(glm::radians(config_data.fov_degrees),
 				 (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
 
    glm::mat4 MVP = projection * view * model;
@@ -403,7 +418,7 @@ int main() {
 
       if(glm::length(move_dir) > 0.0f) {
 	 move_dir = glm::normalize(move_dir);
-	 camera_pos += move_dir * move_speed * delta_time;
+	 camera_pos += move_dir * config_data.move_speed * delta_time;
       }
 
       
