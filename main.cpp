@@ -54,6 +54,7 @@ struct ConfigData {
 
 
 void read_shader_source(std::string file_path, std::string &output_source);
+void compile_shader_program(std::string vert_path, std::string frag_path, GLuint *shader_program);
 
 
 int main() {
@@ -63,7 +64,7 @@ int main() {
    // @@ program variables
    ConfigData config_data;
    config_data.ambient_light_color = glm::vec3(0.1f, 0.1f, 0.1f);
-   config_data.mouse_sensitivity = 0.01f;
+   config_data.mouse_sensitivity = 0.003f;
    config_data.texture_scale = 1.0f;
    config_data.fov_degrees = 70.0f;
    config_data.move_speed = 0.6f;
@@ -167,71 +168,20 @@ int main() {
 
    
    // @@ compiling shaders
-   GLuint shader_program;
+   GLuint toy_box_shader_program;
    {
-      int success;
-      char info_log[2048];
-   
-      std::string vert_path{"shaders/triangle.vert"};
-      std::string frag_path{"shaders/triangle.frag"};
-      std::string vert_source{};
-      std::string frag_source{};
-
-      read_shader_source(vert_path, vert_source);
-      read_shader_source(frag_path, frag_source);
-
-      GLuint vert_shader;
-      GLuint frag_shader;
-      vert_shader = glCreateShader(GL_VERTEX_SHADER);
-      frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-      const GLchar *char_vert_source = vert_source.c_str();
-      glShaderSource(vert_shader, 1, &char_vert_source, NULL);
-      glCompileShader(vert_shader);
-      glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
-      if(!success) {
-	 glGetShaderInfoLog(vert_shader, 2048, NULL, info_log);
-	 std::cerr << "ERROR: vert shader compiling failed." << '\n';
-	 std::cout << info_log << '\n';
-	 exit(1);
-      }
-
-      const GLchar *char_frag_source = frag_source.c_str();
-      glShaderSource(frag_shader, 1, &char_frag_source, NULL);
-      glCompileShader(frag_shader);
-      glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
-      if(!success) {
-	 glGetShaderInfoLog(frag_shader, 2048, NULL, info_log);
-	 std::cerr << "ERROR: frag shader compiling failed." << '\n';
-	 std::cout << info_log << '\n';
-	 exit(1);
-      }
-   
-      shader_program = glCreateProgram();
-      glAttachShader(shader_program, vert_shader);
-      glAttachShader(shader_program, frag_shader);
-      glLinkProgram(shader_program);
-
-      glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-      if(!success) {
-	 glGetProgramInfoLog(shader_program, 2048, NULL, info_log);
-	 std::cerr << "ERROR: shader link failed." << '\n';
-	 std::cout << info_log << '\n';
-	 exit(1);
-      }
-   
-      glDeleteShader(vert_shader);
-      glDeleteShader(frag_shader);
-
+      std::string toy_box_vert_path{"shaders/triangle.vert"};
+      std::string toy_box_frag_path{"shaders/triangle.frag"};
+      compile_shader_program(toy_box_vert_path, toy_box_frag_path, &toy_box_shader_program);
       
-      glUseProgram(shader_program);
-      glUniform1i(glGetUniformLocation(shader_program, "container_texture"), 0);
-      glUniform1i(glGetUniformLocation(shader_program, "face_texture"), 1);
+      glUseProgram(toy_box_shader_program);
+      glUniform1i(glGetUniformLocation(toy_box_shader_program, "container_texture"), 0);
+      glUniform1i(glGetUniformLocation(toy_box_shader_program, "face_texture"), 1);
    }
    // @!
 
 
-   // @@ vertex stuff
+   // @@ loading and creating toy box
    GLuint triangle_VAO;
    {
       glGenVertexArrays(1, &triangle_VAO);
@@ -311,9 +261,14 @@ int main() {
    // @!
 
 
+   // @@ creating light source
+   {
+   }
+   // @!
+
+
    // @@ idk
    glm::mat4 model = glm::mat4(1.0f);
-   model = glm::rotate(model, glm::radians(-40.0f), glm::vec3(1.0f, 0.0f, 0.0f));
    glm::mat4 view = glm::mat4(1.0f);
    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
    glm::mat4 projection;
@@ -322,7 +277,7 @@ int main() {
 
    glm::mat4 MVP = projection * view * model;
 
-   GLint shader_MVP_id = glGetUniformLocation(shader_program, "MVP");
+   GLint shader_MVP_id = glGetUniformLocation(toy_box_shader_program, "MVP");
    glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
    // @!
 
@@ -388,8 +343,8 @@ int main() {
 
 
       // @@ simulation
-      yaw += 0.01 * (input_data.mouse_xpos - input_data.last_mouse_xpos);
-      pitch += 0.01 * (input_data.mouse_ypos - input_data.last_mouse_ypos);
+      yaw += config_data.mouse_sensitivity * (input_data.mouse_xpos - input_data.last_mouse_xpos);
+      pitch += config_data.mouse_sensitivity * (input_data.mouse_ypos - input_data.last_mouse_ypos);
       if(pitch > 1.5533) { pitch = 1.5533; }
       else if(pitch < -1.5533) { pitch = -1.5533; }
 
@@ -403,10 +358,10 @@ int main() {
       glm::vec3 camera_right_dir =
 	 glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), camera_face_dir));
       if(input_data.w_key_press == true) {
-	 move_dir += glm::vec3(camera_face_dir.x, 0.0f, camera_face_dir.z);
+	 move_dir += glm::vec3(camera_face_dir.x, camera_face_dir.y, camera_face_dir.z);
       }
       if(input_data.s_key_press == true) {
-	 move_dir += glm::vec3(-camera_face_dir.x, 0.0f, -camera_face_dir.z);
+	 move_dir += glm::vec3(-camera_face_dir.x, -camera_face_dir.y, -camera_face_dir.z);
       }
 
       if(input_data.a_key_press == true) {
@@ -442,7 +397,7 @@ int main() {
       glActiveTexture(GL_TEXTURE1);
       glBindTexture(GL_TEXTURE_2D, texture_2_id);
       
-      glUseProgram(shader_program);
+      glUseProgram(toy_box_shader_program);
       glBindVertexArray(triangle_VAO);
       glDrawArrays(GL_TRIANGLES, 0, 36);
       // @!
@@ -474,4 +429,60 @@ void read_shader_source(std::string file_path, std::string &output_source) {
    }
 
    output_source = file_source;
+}
+
+
+void compile_shader_program(std::string vert_path, std::string frag_path, GLuint *shader_program) {
+   int success;
+   char info_log[2048];
+   
+   std::string vert_source{};
+   std::string frag_source{};
+
+   read_shader_source(vert_path, vert_source);
+   read_shader_source(frag_path, frag_source);
+
+   GLuint vert_shader;
+   GLuint frag_shader;
+   vert_shader = glCreateShader(GL_VERTEX_SHADER);
+   frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+   const GLchar *char_vert_source = vert_source.c_str();
+   glShaderSource(vert_shader, 1, &char_vert_source, NULL);
+   glCompileShader(vert_shader);
+   glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
+   if(!success) {
+      glGetShaderInfoLog(vert_shader, 2048, NULL, info_log);
+      std::cerr << "ERROR: vert shader compiling failed." << '\n';
+      std::cout << info_log << '\n';
+      exit(1);
+   }
+
+   const GLchar *char_frag_source = frag_source.c_str();
+   glShaderSource(frag_shader, 1, &char_frag_source, NULL);
+   glCompileShader(frag_shader);
+   glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
+   if(!success) {
+      glGetShaderInfoLog(frag_shader, 2048, NULL, info_log);
+      std::cerr << "ERROR: frag shader compiling failed." << '\n';
+      std::cout << info_log << '\n';
+      exit(1);
+   }
+   
+   *shader_program = glCreateProgram();
+   glAttachShader(*shader_program, vert_shader);
+   glAttachShader(*shader_program, frag_shader);
+   glLinkProgram(*shader_program);
+
+   glGetProgramiv(*shader_program, GL_LINK_STATUS, &success);
+   if(!success) {
+      glGetProgramInfoLog(*shader_program, 2048, NULL, info_log);
+      std::cerr << "ERROR: shader link failed." << '\n';
+      std::cout << info_log << '\n';
+      exit(1);
+   }
+   
+   glDeleteShader(vert_shader);
+   glDeleteShader(frag_shader);
+
 }
