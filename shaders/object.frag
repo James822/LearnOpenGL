@@ -1,7 +1,8 @@
 #version 330 core
 
+uniform vec3 light_color;
+
 in vec2 text_coord;
-in vec3 light_color;
 
 out vec4 frag_color;
 

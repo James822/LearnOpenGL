@@ -95,7 +95,7 @@ int main() {
    // @!
 
    
-   // @@ GLAD
+   // @@ GLAD loading procedures
    {
       gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
    }
@@ -169,25 +169,121 @@ int main() {
    
    // @@ compiling shaders
    GLuint toy_box_shader_program;
+   GLuint light_shader_program;
+   GLint toy_box_shader_MVP_id;
+   GLint light_shader_MVP_id;
    {
-      std::string toy_box_vert_path{"shaders/triangle.vert"};
-      std::string toy_box_frag_path{"shaders/triangle.frag"};
+      // @@ toy box shader
+      std::string toy_box_vert_path{"shaders/object.vert"};
+      std::string toy_box_frag_path{"shaders/object.frag"};
       compile_shader_program(toy_box_vert_path, toy_box_frag_path, &toy_box_shader_program);
       
       glUseProgram(toy_box_shader_program);
-      glUniform1i(glGetUniformLocation(toy_box_shader_program, "container_texture"), 0);
-      glUniform1i(glGetUniformLocation(toy_box_shader_program, "face_texture"), 1);
+      toy_box_shader_MVP_id = glGetUniformLocation(toy_box_shader_program, "MVP");
+      // @!
+
+
+      // @@ light shader
+      std::string light_vert_path{"shaders/light.vert"};
+      std::string light_frag_path{"shaders/light.frag"};
+      compile_shader_program(light_vert_path, light_frag_path, &light_shader_program);
+
+      glUseProgram(light_shader_program);
+      light_shader_MVP_id = glGetUniformLocation(light_shader_program, "MVP");
+      // @!
+   }
+   // @!
+
+   
+   // @@ creating light source
+   GLuint light_VAO;
+   glm::mat4 light_model_matrix;
+   glm::mat4 light_MVP;
+   glm::vec3 light_color;
+   {
+      glGenVertexArrays(1, &light_VAO);
+      glBindVertexArray(light_VAO);
+   
+      GLuint light_VBO;
+      {
+	 float vertices[] = {
+	    -0.5f, -0.5f, -0.5f,
+	    0.5f, -0.5f, -0.5f,
+	    0.5f,  0.5f, -0.5f,
+	    0.5f,  0.5f, -0.5f,
+	    -0.5f,  0.5f, -0.5f,
+	    -0.5f, -0.5f, -0.5f,
+
+	    -0.5f, -0.5f,  0.5f,
+	    0.5f, -0.5f,  0.5f,
+	    0.5f,  0.5f,  0.5f,
+	    0.5f,  0.5f,  0.5f,
+	    -0.5f,  0.5f,  0.5f,
+	    -0.5f, -0.5f,  0.5f,
+
+	    -0.5f,  0.5f,  0.5f,
+	    -0.5f,  0.5f, -0.5f,
+	    -0.5f, -0.5f, -0.5f,
+	    -0.5f, -0.5f, -0.5f,
+	    -0.5f, -0.5f,  0.5f,
+	    -0.5f,  0.5f,  0.5f,
+
+	    0.5f,  0.5f,  0.5f,
+	    0.5f,  0.5f, -0.5f,
+	    0.5f, -0.5f, -0.5f,
+	    0.5f, -0.5f, -0.5f,
+	    0.5f, -0.5f,  0.5f,
+	    0.5f,  0.5f,  0.5f,
+
+	    -0.5f, -0.5f, -0.5f,
+	    0.5f, -0.5f, -0.5f,
+	    0.5f, -0.5f,  0.5f,
+	    0.5f, -0.5f,  0.5f,
+	    -0.5f, -0.5f,  0.5f,
+	    -0.5f, -0.5f, -0.5f,
+
+	    -0.5f,  0.5f, -0.5f,
+	    0.5f,  0.5f, -0.5f,
+	    0.5f,  0.5f,  0.5f,
+	    0.5f,  0.5f,  0.5f,
+	    -0.5f,  0.5f,  0.5f,
+	    -0.5f,  0.5f, -0.5f,
+	 };
+
+	 glGenBuffers(1, &light_VBO);
+	 glBindBuffer(GL_ARRAY_BUFFER, light_VBO);
+	 glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+      }
+
+      // @@ vertex attributes
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+      glEnableVertexAttribArray(0);
+      // @!
+      
+      // @@ model matrix setup
+      light_model_matrix = glm::mat4(1.0f);
+      light_model_matrix = glm::translate(light_model_matrix, glm::vec3(4.0f, 1.0f, -2.0f));
+      // @!
+
+      // @@ shader stuff
+      light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+      glUseProgram(light_shader_program);
+      glUniform3f(glGetUniformLocation(light_shader_program, "light_color"),
+		  light_color.r, light_color.g, light_color.b);
+      // @!
    }
    // @!
 
 
    // @@ loading and creating toy box
-   GLuint triangle_VAO;
+   GLuint toy_box_VAO;
+   glm::mat4 toy_box_model_matrix;
+   glm::mat4 toy_box_MVP;
    {
-      glGenVertexArrays(1, &triangle_VAO);
-      glBindVertexArray(triangle_VAO);
+      glGenVertexArrays(1, &toy_box_VAO);
+      glBindVertexArray(toy_box_VAO);
    
-      GLuint triangle_VBO;
+      GLuint toy_box_VBO;
       {
 	 float vertices[] = {
 	    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -239,11 +335,12 @@ int main() {
 	 //    0.0f,   0.5f, 0.0f,  1.0f, 0.0f, 1.0f, texture_scale * 0.5f, texture_scale * 1.0f,
 	 // };
 
-	 glGenBuffers(1, &triangle_VBO);
-	 glBindBuffer(GL_ARRAY_BUFFER, triangle_VBO);
+	 glGenBuffers(1, &toy_box_VBO);
+	 glBindBuffer(GL_ARRAY_BUFFER, toy_box_VBO);
 	 glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
       }
 
+      // @@ vertex attributes
       // positions
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
       glEnableVertexAttribArray(0);
@@ -252,33 +349,29 @@ int main() {
       glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
 			    (void *)(3 * sizeof(GLfloat)));
       glEnableVertexAttribArray(1);
+      // @!
 
-      // // tex coords
-      // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
-      // 			    (void *)(6 * sizeof(GLfloat)));
-      // glEnableVertexAttribArray(2);
+      // @@ model matrix setup
+      toy_box_model_matrix = glm::mat4(1.0f);
+      // @!
+
+      // @@ shader stuff
+      glUseProgram(toy_box_shader_program);
+      glUniform1i(glGetUniformLocation(toy_box_shader_program, "container_texture"), 0);
+      glUniform1i(glGetUniformLocation(toy_box_shader_program, "face_texture"), 1);
+      glUniform3f(glGetUniformLocation(toy_box_shader_program, "light_color"),
+		  light_color.r, light_color.g, light_color.b);
+      // @!
    }
    // @!
 
-
-   // @@ creating light source
-   {
-   }
-   // @!
-
-
-   // @@ idk
-   glm::mat4 model = glm::mat4(1.0f);
+   
+   // @@ camera VP setup
    glm::mat4 view = glm::mat4(1.0f);
    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
    glm::mat4 projection;
    projection = glm::perspective(glm::radians(config_data.fov_degrees),
 				 (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
-
-   glm::mat4 MVP = projection * view * model;
-
-   GLint shader_MVP_id = glGetUniformLocation(toy_box_shader_program, "MVP");
-   glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
    // @!
 
 
@@ -375,22 +468,19 @@ int main() {
 	 move_dir = glm::normalize(move_dir);
 	 camera_pos += move_dir * config_data.move_speed * delta_time;
       }
+      // @!
 
       
+      // @@ rendering
       glm::mat4 view;
       view = glm::lookAt(camera_pos,
 			 camera_pos + camera_face_dir,
 			 glm::vec3(0.0, 1.0, 0.0));
 
       
-      MVP = projection * view * model;
-      glUniformMatrix4fv(shader_MVP_id, 1, GL_FALSE, glm::value_ptr(MVP));
-      // @!
-
-      
-      // @@ rendering
       glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
       
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, texture_1_id);
@@ -398,7 +488,16 @@ int main() {
       glBindTexture(GL_TEXTURE_2D, texture_2_id);
       
       glUseProgram(toy_box_shader_program);
-      glBindVertexArray(triangle_VAO);
+      toy_box_MVP = projection * view * toy_box_model_matrix;
+      glUniformMatrix4fv(toy_box_shader_MVP_id, 1, GL_FALSE, glm::value_ptr(toy_box_MVP));
+      glBindVertexArray(toy_box_VAO);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+
+      
+      glUseProgram(light_shader_program);
+      light_MVP = projection * view * light_model_matrix;
+      glUniformMatrix4fv(light_shader_MVP_id, 1, GL_FALSE, glm::value_ptr(light_MVP));
+      glBindVertexArray(light_VAO);
       glDrawArrays(GL_TRIANGLES, 0, 36);
       // @!
       
