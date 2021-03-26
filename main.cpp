@@ -45,11 +45,13 @@ struct InputData {
 };
 
 struct ConfigData {
-   glm::vec3 ambient_light_color;
    float mouse_sensitivity;
-   float texture_scale;
    float fov_degrees;
    float move_speed;
+
+   float texture_scale;
+
+   float ambient_light_strength;
 };
 
 
@@ -63,11 +65,11 @@ int main() {
    
    // @@ program variables
    ConfigData config_data;
-   config_data.ambient_light_color = glm::vec3(0.1f, 0.1f, 0.1f);
    config_data.mouse_sensitivity = 0.003f;
-   config_data.texture_scale = 1.0f;
    config_data.fov_degrees = 70.0f;
    config_data.move_speed = 0.6f;
+   config_data.texture_scale = 1.0f;
+   config_data.ambient_light_strength = 0.1f;
    // @!
 
 
@@ -180,6 +182,8 @@ int main() {
       
       glUseProgram(toy_box_shader_program);
       toy_box_shader_MVP_id = glGetUniformLocation(toy_box_shader_program, "MVP");
+      glUniform1f(glGetUniformLocation(toy_box_shader_program, "ambient_light_strength"),
+		  config_data.ambient_light_strength);
       // @!
 
 
@@ -286,54 +290,49 @@ int main() {
       GLuint toy_box_VBO;
       {
 	 float vertices[] = {
-	    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-	    0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	    0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	    0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-	    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	    0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	    0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	    0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	    0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	    0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	    0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	    0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-	    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 
+	    0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,  
+	    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,  
+	    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,  
+	    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, 
+	    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, 
+						      	    
+	    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, 
+	    0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,  
+	    0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,  
+	    0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,  
+	    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 1.0f, 
+	    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f, 
+						      	    
+	    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, 
+	    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, 
+	    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, 
+	    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, 
+	    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, 
+	    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, 
+						      	    
+	    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  
+	    0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,  
+	    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  
+	    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,  
+	    0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,  
+	    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,  
+						      	    
+	    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, 
+	    0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,  
+	    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,  
+	    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,  
+	    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, 
+	    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, 
+						      	    
+	    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, 
+	    0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,  
+	    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,  
+	    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,  
+	    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f, 
+	    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,
 	 };
-	 // GLfloat vertices[] = {
-	 //    // positions         // colors         // tex coords
-	 //    0.5f,  -0.5f, 0.0f,  1.0f, 1.0f, 0.0f, texture_scale * 0.0f, texture_scale * 0.0f,
-	 //    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 1.0f, texture_scale * 1.0f, texture_scale * 0.0f,
-	 //    0.0f,   0.5f, 0.0f,  1.0f, 0.0f, 1.0f, texture_scale * 0.5f, texture_scale * 1.0f,
-	 // };
+	 
 
 	 glGenBuffers(1, &toy_box_VBO);
 	 glBindBuffer(GL_ARRAY_BUFFER, toy_box_VBO);
@@ -342,13 +341,18 @@ int main() {
 
       // @@ vertex attributes
       // positions
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
       glEnableVertexAttribArray(0);
 
-      // tex coords
-      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat),
+      // normals
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
 			    (void *)(3 * sizeof(GLfloat)));
       glEnableVertexAttribArray(1);
+
+      // tex coords
+      glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat),
+			    (void *)(6 * sizeof(GLfloat)));
+      glEnableVertexAttribArray(2);
       // @!
 
       // @@ model matrix setup
@@ -371,7 +375,7 @@ int main() {
    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
    glm::mat4 projection;
    projection = glm::perspective(glm::radians(config_data.fov_degrees),
-				 (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+				 (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.05f, 100.0f);
    // @!
 
 
@@ -408,6 +412,10 @@ int main() {
       
       // @@ input
       {
+	 if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+	    exit(0);
+	 }
+	 
 	 input_data.w_key_press = false;
 	 input_data.s_key_press = false;
 	 input_data.a_key_press = false;
@@ -478,7 +486,7 @@ int main() {
 			 glm::vec3(0.0, 1.0, 0.0));
 
       
-      glClearColor(0.1f, 0.4f, 0.5f, 1.0f);
+      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       

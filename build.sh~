@@ -1,0 +1,149 @@
+#!/bin/bash
+
+### Build file for the Ronavid Engine
+
+
+
+## uncomment/comment these variables to adjust build type
+##------------------------------------------------
+
+#BUILD_TYPE="RELEASE_BUILD"
+BUILD_TYPE="DEV_BUILD_NERROR"
+#BUILD_TYPE="DEV_BUILD"
+
+##------------------------------------------------
+
+
+## OS variables, set depending on the operating system
+OS="Windows" # assuming windows by default
+if [ $(uname -o) == "GNU/Linux" ]; then
+    OS="GNU/Linux"
+fi
+##
+
+
+## variables for building
+ROOT_DIR="/home/james/OMNICRAFT" # symlink to actual Omincraft directory
+ENGINE_DIR="$ROOT_DIR/Ronavid_Engine"
+BUILDS_DIR="$ENGINE_DIR/builds"
+RUNTIME_DIR="$ENGINE_DIR/runtime"
+INCLUDES_DIR="$ENGINE_DIR/includes"
+
+CFLAGS="-std=c++17 -Wall -Wextra -Wpedantic -Winline -pedantic-errors -Wcast-align -Wconversion -Wfloat-equal -Wuninitialized"
+LDFLAGS="`pkg-config --static --libs glfw3` -L$ENGINE_DIR/assimp-5.0.1/lib/ -lassimp"
+LCFLAGS="`pkg-config --cflags glfw3`"
+
+OPTIMIZE="-O2" # for now set at -O2, can be changed later.
+
+DEV="-D DEV_BUILD"
+##
+
+
+## this is how to export LD_LIBRARY_PATH for the shared libs, this is not meant to be
+## uncommented, it is just a source to copy/paste
+#export LD_LIBRARY_PATH=../assimp-5.0.1/lib/:$LD_LIBRARY_PATH
+##
+
+
+## getting all relavent source files that need to be included in compilation
+# loop through sub dirs of $RUNTIME_DIR and fetch a list of all .cpp files
+# marked as source file [@MARK:source]
+search_files () {
+    LIST_OF_DIRS=$(ls)
+    for dir in $LIST_OF_DIRS; do
+	if [ -d "$dir" ]; then
+	    (cd -- "$dir" && search_files)
+	fi
+    done
+    POT_FILES=$(ls | grep ".cpp$")
+    for file in $POT_FILES; do
+	FILE_CONTENTS=$(cat "$file")
+	if [ $(head -n30 "$file" | grep -c "@MARK:source") != 0 ]; then
+	    NEW_FILE="$(pwd)/$file"
+	    echo "$NEW_FILE"
+	fi
+    done
+}
+
+cd "$RUNTIME_DIR" # just a sanity check to make sure we are in the right place
+
+FILES="$(search_files) $RUNTIME_DIR/glad.o" # for now just manually adding object files
+
+cd "$RUNTIME_DIR" # need to do this to get back to the right directory
+
+#stripping trailing space from $FILES variable
+
+
+##
+
+
+
+
+### Headers for source (cpp) and header (hpp) files
+
+# files can be 'marked', with the following syntax:
+# @MARK:<option> (e.g. @MARK:source)
+# option can be these: [source, header, delete]
+# if @MARK:delete is specified than the file will be deleted next build
+# if @MARK:source is defined than that file is a source and will be included in compilation
+# if @MARK:header is defined than that file is a header file
+###
+
+
+
+
+## printing info
+clear ## clears the terminal for convience
+echo "=========================================================================="
+echo -e "| Building Ronavid Engine... |\n"
+echo "OS: $OS"
+echo "Build Directory: $BUILDS_DIR"
+echo -e "Runtime Directory: $RUNTIME_DIR\n\n"
+
+
+
+### Dev Build
+if [ $BUILD_TYPE == "DEV_BUILD" ]; then
+    echo "BUILD_TYPE: --> DEV VERSION"
+    echo -e "==========================================================================\n\n"
+    echo -e "SOURCE FILES:\n$FILES\n\n"
+
+    THESE_FLAGS="$LCFLAGS $LDFLAGS $CFLAGS"
+    OUTPUT="$BUILDS_DIR/dev/omnicraft"
+    INCLUDES_FLAG="-isystem $INCLUDES_DIR"
+    g++ $DEV $THESE_FLAGS $OPTIMIZE -Werror -o $OUTPUT $FILES $INCLUDES_FLAG
+fi
+###
+
+
+
+
+### Dev Build No Errors
+if [ $BUILD_TYPE == "DEV_BUILD_NERROR" ]; then
+    echo "BUILD_TYPE: --> DEV VERSION NERROR [Errors treated as Warnings]"
+    echo -e "==========================================================================\n\n"
+    echo -e "SOURCE FILES:\n$FILES\n\n"
+
+    THESE_FLAGS="$LCFLAGS $LDFLAGS $CFLAGS"
+    OUTPUT="$BUILDS_DIR/dev/omnicraft"
+    INCLUDES_FLAG="-isystem $INCLUDES_DIR"
+    g++ $DEV $THESE_FLAGS $OPTIMIZE -o $OUTPUT $FILES $INCLUDES_FLAG
+fi
+###
+
+
+
+
+### Release Build
+if [ $BUILD_TYPE == "RELEASE_BUILD" ]; then
+    echo "BUILD_TYPE: --> RELEASE VERSION"
+    echo "Release Build not configured yet, please edit build file (this file)"
+    echo -e "==========================================================================\n\n"
+    echo -e "SOURCE FILES:\n$FILES\n\n"
+
+    THESE_FLAGS="$LCFLAGS $LDFLAGS $CFLAGS"
+    OUTPUT="$BUILDS_DIR/release/omnicraft"
+    INCLUDES_FLAG="-isystem $INCLUDES_DIR"
+    g++ $THESE_FLAGS $OPTIMIZE -o $OUTPUT $FILES $INCLUDES_FLAG
+fi
+###
